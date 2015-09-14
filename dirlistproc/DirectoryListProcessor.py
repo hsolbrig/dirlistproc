@@ -36,7 +36,7 @@ class DirectoryListProcessor:
     def __init__(self, args: list, description: str, infile_suffix: str, outfile_suffix: str, addargs=None,
                  postparse=None):
         """ Build a directory list processor
-        :param args: Input arguments such as supplied from main
+        :param args: Input arguments such as supplied from sys.argv.  None means use sys.argv
         :param description: Description of the function.  Appears in a help string
         :param infile_suffix: Suffix filter on input file.  If absent, all files not starting with "." pass
         :param outfile_suffix: Suffix to add to output file.  If absent, name is same as input
@@ -54,7 +54,7 @@ class DirectoryListProcessor:
         parser.add_argument("-s", "--stoponerror", help="Stop on processing error", action="store_true")
         if addargs:
             addargs(parser)
-        self.opts = parser.parse_args(args)
+        self.opts = parser.parse_args(args if args is not None else sys.argv[1:])
         if postparse:
             postparse(self.opts)
 
@@ -110,7 +110,7 @@ class DirectoryListProcessor:
         :return: Full name of output file
         """
         if self.opts.outfile or not self.opts.outdir:
-            return self.opts.outfile
+            return os.path.join(self.opts.outdir, self.opts.outfile) if self.opts.outdir else self.opts.outfile
         else:
             relpath = dirpath[len(self.opts.indir) + 1:] if not self.opts.flatten and self.opts.indir else ''
             return os.path.join(self.opts.outdir, relpath,

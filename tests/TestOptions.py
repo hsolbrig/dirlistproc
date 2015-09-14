@@ -26,10 +26,25 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
+import dirlistproc
+import argparse
 
+def proc_xml(input_fn: str, output_fn: str, opts: argparse.Namespace) -> bool:
+    print("Converting %s to %s" % (input_fn, output_fn))
+    return not opts.noconvert
 
-""" Directory based input and output processor. """
+def addargs(args: argparse.ArgumentParser):
+    args.add_argument("-n", "--noconvert", help="Just print instead of converting", action="store_true")
 
-__version__ = '0.1.10-dev'
+def procargs(opts: argparse.Namespace):
+    if opts.noconvert:
+        print("WARNING: no processing is occurring")
 
-from dirlistproc.DirectoryListProcessor import DirectoryListProcessor
+def main():
+    dlp = dirlistproc.DirectoryListProcessor(None, "Convert XML to Text", ".xml", ".txt",
+                                             addargs=addargs, postparse=procargs)
+    nfiles, nsuccess = dlp.run(proc_xml)
+    print("Total=%d Successful=%d" % (nfiles, nsuccess))
+
+if __name__ == '__main__':
+    main()

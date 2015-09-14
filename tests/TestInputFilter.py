@@ -26,10 +26,24 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
+import dirlistproc
 
 
-""" Directory based input and output processor. """
+def proc_xml(input_fn: str, output_fn: str, _) -> bool:
+    print("Converting %s to %s" % (input_fn, output_fn))
+    return True
 
-__version__ = '0.1.10-dev'
 
-from dirlistproc.DirectoryListProcessor import DirectoryListProcessor
+def inp_filtr(input_fn):
+    print("Filtr %s" % input_fn)
+    return "f4" not in input_fn
+
+
+def main():
+    dlp = dirlistproc.DirectoryListProcessor(None, "Convert XML to Text", ".xml", ".txt")
+    nfiles, nsuccess = dlp.run(proc_xml, inp_filtr)
+    print("Total=%d Successful=%d" % (nfiles, nsuccess))
+
+
+if __name__ == '__main__':
+    main()

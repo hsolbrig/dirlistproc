@@ -29,7 +29,7 @@
 import argparse
 import unittest
 
-from dirlistproc.DirectoryListProcessor import DirectoryListProcessor
+import dirlistproc
 
 
 class MyTestCase(unittest.TestCase):
@@ -40,7 +40,7 @@ class MyTestCase(unittest.TestCase):
             return True
 
         args = "-i inp.txt -o out.txt"
-        dlp = DirectoryListProcessor(args.split(), "Test Processor", '', '')
+        dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test Processor", '', '')
         self.assertEqual((1, 1), dlp.run(t1proc))
 
     def test_no_return(self):
@@ -49,7 +49,7 @@ class MyTestCase(unittest.TestCase):
             self.assertEqual('out.txt', ofn)
 
         args = "-i inp.txt -o out.txt"
-        dlp = DirectoryListProcessor(args.split(), "Test Processor", '', '')
+        dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test Processor", '', '')
         self.assertEqual((1, 1), dlp.run(t1proc))
 
     def test_simple_dir(self):
@@ -58,7 +58,7 @@ class MyTestCase(unittest.TestCase):
                             (ifn == 'testfiles/f2.txt' and ofn == 'testout/f2.xtx'))
             return True
         args = "-id testfiles -od testout"
-        dlp = DirectoryListProcessor(args.split(), "Test Processor", '.txt', '.xtx')
+        dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test Processor", '.txt', '.xtx')
         self.assertEqual((2, 2), dlp.run(t2proc))
 
         def t2proc2(ifn, _, __):
@@ -81,7 +81,7 @@ class MyTestCase(unittest.TestCase):
             self.assertTrue(opts.two)
             self.assertEqual("foo", opts.special)
 
-        dlp = DirectoryListProcessor(args.split(), "Special Processor", '.txt', '.xtx', add2args, addparm)
+        dlp = dirlistproc.DirectoryListProcessor(args.split(), "Special Processor", '.txt', '.xtx', add2args, addparm)
         dlp.run(t3proc)
 
     def test_recursive(self):
@@ -97,7 +97,7 @@ class MyTestCase(unittest.TestCase):
             self.assertEqual(expected_names[ifn], ofn)
             return True
 
-        dlp = DirectoryListProcessor(args.split(), "Test", '.xml', ".foo")
+        dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".foo")
         self.assertEqual((4, 4), dlp.run(tproc))
 
     def test_no_inout(self):
@@ -106,7 +106,7 @@ class MyTestCase(unittest.TestCase):
             self.assertIsNone(ifn)
             self.assertIsNone(ofn)
 
-        dlp = DirectoryListProcessor([], "", ".xml", ".foo")
+        dlp = dirlistproc.DirectoryListProcessor([], "", ".xml", ".foo")
         self.assertEqual((1, 1), dlp.run(tproc))
 
     def test_diff_prefix_length(self):
@@ -121,7 +121,7 @@ class MyTestCase(unittest.TestCase):
             return True
 
         args = "-id testfiles -od testout"
-        dlp = DirectoryListProcessor(args.split(), "Test Processor", '.txt', '.2222')
+        dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test Processor", '.txt', '.2222')
         self.assertEqual((2, 2), dlp.run(t2proc))
 
         def t2proc2(ifn, ofn, _):
@@ -133,7 +133,7 @@ class MyTestCase(unittest.TestCase):
                 self.assertTrue(False, "Unknown input file %s" % ifn)
             return True
 
-        dlp = DirectoryListProcessor(args.split(), "Test Processor", '.txt', '.2')
+        dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test Processor", '.txt', '.2')
         self.assertEqual((2, 2), dlp.run(t2proc2))
 
     def test_stop_on_error(self):
@@ -142,12 +142,23 @@ class MyTestCase(unittest.TestCase):
         def tproc(ifn, ofn, _):
             return "f1" in ifn
 
-        dlp = DirectoryListProcessor(args.split(), "Test", '.xml', ".foo")
+        dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".foo")
         self.assertEqual((2, 1), dlp.run(tproc))
 
         args = "-id testfiles -od testout"
-        dlp = DirectoryListProcessor(args.split(), "Test", '.xml', ".foo")
+        dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".foo")
         self.assertEqual((4, 1), dlp.run(tproc))
+
+    def test_od_and_file(self):
+        args = "-i foo.xml -o foo.txt -od another/dir"
+
+        def tproc(ifn, ofn, _):
+            return ifn == "foo.xml" and ofn == "another/dir/foo.txt"
+
+        dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
+        self.assertEqual((1, 1), dlp.run(tproc))
+
+
 
 
 if __name__ == '__main__':
