@@ -1,5 +1,28 @@
-# dirlistproc
+# dirlistproc - command line directory processing
 **`dirlistproc`** is a command line driven directory processing framework that allows the specification of input and output files or directories from the command line
+
+# Install
+---
+Run:
+
+       python setup.py install
+       
+   -- or --
+   
+       pip install dirlistproc
+   
+# Links
+---
+## Project Page
+<https://github.com/hsolbrig/dirlistproc>
+
+## Documentation
+http://readthedocs.org/docs/dirlistproc/en/latest -- TODO
+
+## Issues/Bugs
+<https://github.com/hsolbrig/dirlistproc/issues>
+
+# Description
 
 It accepts command line arguments that allow the specification of:
 
