@@ -32,17 +32,19 @@ setup(
     version='v1.0.0-beta',
     packages=['dirlistproc'],
     url='http://github.com/hsolbrig/dirlistproc',
-    license='New BSD License',
+    license='BSD',
     author='Harold Solbrig',
     author_email='solbrig.harold@mayo.edu',
     description='Directory list wrapper for batch file processing',
     classifiers=[
         'Development Status :: 4 - Beta',
+        'Environment :: Console',
         'Intended Audience :: Developers',
-        'License :: New BSD License',
+        'License :: OSI Approved :: BSD License',
         'Programming Language :: Python',
-        'Programming Language :: Python :; 3',
-        'Topic :: Command Line',
-        'Topic :: File Processing Framework'
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3 :: Only',
+        'Topic :: Utilities',
+        'Topic :: Text Processing'
     ]
 )
