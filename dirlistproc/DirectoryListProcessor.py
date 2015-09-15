@@ -46,15 +46,19 @@ class DirectoryListProcessor:
         self.infile_suffix = infile_suffix
         self.outfile_suffix = outfile_suffix
         parser = argparse.ArgumentParser(description=description)
-        parser.add_argument("-i", "--infile", help="Input file")
+        parser.add_argument("-i", "--infile", help="Input file(s)", nargs="*")
         parser.add_argument("-id", "--indir", help="Input directory")
-        parser.add_argument("-o", "--outfile", help="Output file")
+        parser.add_argument("-o", "--outfile", help="Output file(s)", nargs="*")
         parser.add_argument("-od", "--outdir", help="Output directory")
         parser.add_argument("-f", "--flatten", help="Flatten output directory", action="store_true")
         parser.add_argument("-s", "--stoponerror", help="Stop on processing error", action="store_true")
         if addargs:
             addargs(parser)
         self.opts = parser.parse_args(args if args is not None else sys.argv[1:])
+        n_infiles = len(self.opts.infile) if self.opts.infile else 0
+        n_outfiles = len(self.opts.outfile) if self.opts.outfile else 0
+        if (n_infiles > 1 or n_outfiles > 1) and n_infiles != n_outfiles:
+            parser.error("Number of input and output files must match")
         if postparse:
             postparse(self.opts)
 
@@ -81,10 +85,16 @@ class DirectoryListProcessor:
         :return: tuple - (num_files_processed: int, num_files_passed)
         """
         if self.opts.infile:
-            fn = os.path.join(self.opts.indir, self.opts.infile) if self.opts.indir else self.opts.infile
-            if file_filter and not file_filter(fn):
-                return 1, 0
-            return 1, 1 if self._call_proc(proc, fn, self._outfile_name('', fn)) else 0
+            nsuccess = 0
+            for file_idx in range(len(self.opts.infile)):
+                in_f = self.opts.infile[file_idx]
+                fn = os.path.join(self.opts.indir, in_f) if self.opts.indir else in_f
+                if not file_filter or file_filter(fn):
+                    if self._call_proc(proc, fn, self._outfile_name('', fn, outfile_idx=file_idx)):
+                        nsuccess += 1
+                    elif self.opts.stoponerror:
+                        break
+            return len(self.opts.infile), nsuccess
         elif not self.opts.indir:
             return 1, 1 if self._call_proc(proc, None, self._outfile_name('', '')) else 0
         else:
@@ -102,16 +112,26 @@ class DirectoryListProcessor:
 
             return nfiles, nsuccess
 
-    def _outfile_name(self, dirpath: str, infile: str) -> str:
+    def _outfile_name(self, dirpath: str, infile: str, outfile_idx=0) -> str:
         """ Construct the output file name from the input file.  If a single output file was named and there isn't a
         directory, return the output file.
         :param dirpath: Directory path to infile
         :param infile: Name of input file
-        :return: Full name of output file
+        :param outfile_idx: Index into output file list (for multiple input/output files)
+        :return: Full name of output file or None if output is not otherwise supplied
         """
         if self.opts.outfile or not self.opts.outdir:
-            return os.path.join(self.opts.outdir, self.opts.outfile) if self.opts.outdir else self.opts.outfile
+            return os.path.join(self.opts.outdir, self.opts.outfile[outfile_idx]) \
+                if self.opts.outdir else self.opts.outfile[outfile_idx] if self.opts.outfile is not None else None
         else:
             relpath = dirpath[len(self.opts.indir) + 1:] if not self.opts.flatten and self.opts.indir else ''
             return os.path.join(self.opts.outdir, relpath,
                                 os.path.split(infile)[1][:-len(self.infile_suffix)] + self.outfile_suffix)
+
+
+def default_proc(ifn, ofn, _):
+    print("Input file name: %s -- Output file name: %s" % (ifn, ofn))
+    return True
+
+if __name__ == '__main__':
+    DirectoryListProcessor(None, "DLP Framework", "", "").run(default_proc)

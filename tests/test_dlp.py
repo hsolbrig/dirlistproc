@@ -28,6 +28,7 @@
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 import argparse
 import unittest
+import sys
 
 import dirlistproc
 
@@ -158,7 +159,58 @@ class MyTestCase(unittest.TestCase):
         dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
         self.assertEqual((1, 1), dlp.run(tproc))
 
+    class MemFile:
+        def write(self, txt):
+            pass
 
+    def test_multiple_files(self):
+        # Ground sys.stderr
+        glob_sys_stderr = sys.stderr
+        sys.stderr = self.MemFile()
+
+        # Input and output matches
+        args = "-i foo.xml bar.xml -o foo.txt bar.txt"
+
+        def tproc(ifn, ofn, _):
+            return (ifn == "foo.xml" and ofn == "foo.txt") or (ifn == "bar.xml" and ofn == "bar.txt")
+
+        dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
+        self.assertEqual((2, 2), dlp.run(tproc))
+
+        # More output than input -- not allowed
+        args = "-i foo.xml -o foo.txt bar.txt"
+        with self.assertRaises(SystemExit):
+            dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
+
+        # More input than output -- not allowed
+        args = "-i foo.xml bar.xml -o foo.txt"
+        with self.assertRaises(SystemExit):
+            dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
+
+        # Two outputs with no inputs -- not allowed
+        args = "-o foo.txt bar.txt"
+        with self.assertRaises(SystemExit):
+            dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
+
+        # One input, no outputs -- ok
+        args = "-i foo.xml"
+
+        def tproc2(ifn, ofn, _):
+            return ifn == "foo.xml" and ofn is None
+
+        dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
+        self.assertEqual((1, 1), dlp.run(tproc2))
+
+        # One output, no inputs -- ok
+        args = "-o foo.txt"
+
+        def tproc3(ifn, ofn, _):
+            return ifn is None and ofn == "foo.txt"
+
+        dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
+        self.assertEqual((1, 1), dlp.run(tproc3))
+
+        sys.stderr = glob_sys_stderr
 
 
 if __name__ == '__main__':

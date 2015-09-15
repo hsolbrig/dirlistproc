@@ -1,14 +1,35 @@
 # dirlistproc
-``dirlistproc`` is a command line driven directory processing framework that allows the specification of a set of input files, a target directory and a transformation process.
+**`dirlistproc`** is a command line driven directory processing framework that allows the specification of input and output files or directories from the command line
 
 It accepts command line arguments that allow the specification of:
 
-* One or more input files
-* An input directory
-* An output file
-* An output directory
-* An option that determines whether input directory structure should be preserved in the output directory
-* An option that determines whether processing should stop if an error is encountered or continue
+* An optional list of input file name(s)
+* An optional input directory
+* An optional list of output file names(s)
+* An optional directory
+* An flag that determines whether input directory structure should be preserved in the output directory
+* An flag that determines whether processing should stop if an error is encountered or continue
+
+## Default help display
+    > python DirectoryListProcessor.py -h
+    usage: DirectoryListProcessor.py [-h] [-i [INFILE [INFILE ...]]] [-id INDIR]
+                                     [-o [OUTFILE [OUTFILE ...]]] [-od OUTDIR]
+                                     [-f] [-s]
+    
+    DLP Framework
+    
+    optional arguments:
+      -h, --help            show this help message and exit
+      -i [INFILE [INFILE ...]], --infile [INFILE [INFILE ...]]
+                            Input file(s)
+      -id INDIR, --indir INDIR
+                            Input directory
+      -o [OUTFILE [OUTFILE ...]], --outfile [OUTFILE [OUTFILE ...]]
+                            Output file(s)
+      -od OUTDIR, --outdir OUTDIR
+                            Output directory
+      -f, --flatten         Flatten output directory
+      -s, --stoponerror     Stop on processing error
 
 ## Use
 The `DirectoryListProcessor` constructor takes 6 input arguments:
@@ -28,7 +49,7 @@ The run function takes two arguments:
 
 ## Examples
 
-### TestSimpleExample.py
+### simple_example.py
     import dirlistproc
     
     def proc_xml(input_fn: str, output_fn: str, _) -> bool:
@@ -47,18 +68,18 @@ The run function takes two arguments:
 ### Execution
     > cd tests
     > export PYTHONPATH=..
-    > python TestSimpleExample.py -id testfiles -od ../output
+    > python simple_example.py -id testfiles -od ../output
     Converting testfiles/f1.xml to ../output/f1.txt
     Converting testfiles/f2.xml to ../output/f2.txt
     Converting testfiles/d1/f3.xml to ../output/d1/f3.txt
     Converting testfiles/d1/d2/f4.xml to ../output/d1/d2/f4.txt
     Total=4 Successful=4 
     >
-    >  python TestSimpleExample.py -i foo.xml -o foo.txt
+    >  python simple_example.py -i foo.xml -o foo.txt
     Converting foo.xml to foo.txt
     Total=1 Successful=1
     > 
-    > python TestSimpleExample.py -i foo.xml -od another/dir
+    > python simple_example.py -i foo.xml -od another/dir
     Converting foo.xml to another/dir/foo.txt
     Total=1 Successful=1
     >
@@ -67,7 +88,7 @@ The run function takes two arguments:
 ### Flattening the output directory
 The "-f" parameter indicates that the input directory structure should not be preserved in the output:
 
-    > python TestSimpleExample.py -id testfiles -od ../output -f
+    > python simple_example.py -id testfiles -od ../output -f
     Converting testfiles/f1.xml to ../output/f1.txt
     Converting testfiles/f2.xml to ../output/f2.txt
     Converting testfiles/d1/f3.xml to ../output/f3.txt
@@ -77,7 +98,7 @@ The "-f" parameter indicates that the input directory structure should not be pr
 ## Stop on error argument
 The  "-s" parameter controls whether processing continues or stops when the processing function returns *False*:
  
-### TestStopOnError.py
+### stop_on_error.py
 	    ...    
     def proc_xml(input_fn: str, output_fn: str, _) -> bool:
             if input_fn.startswith("E"):
@@ -88,14 +109,14 @@ The  "-s" parameter controls whether processing continues or stops when the proc
       	...
 ###
 
-    > python TestStopOnError.py -id testfiles -od ../output
+    > python stop_on_error.py -id testfiles -od ../output
     Converting testfiles/f1.xml to ../output/f1.txt
     Fail on testfiles/f2.xml
     Converting testfiles/d1/f3.xml to ../output/d1/f3.txt
     Converting testfiles/d1/d2/f4.xml to ../output/d1/d2/f4.txt
     Total=4 Successful=3
     >
-    > python TestStopOnError.py -id testfiles -od ../output -s
+    > python stop_on_error.py -id testfiles -od ../output -s
     Converting testfiles/f1.xml to ../output/f1.txt
     Fail on testfiles/f2.xml
     Total=2 Successful=1
@@ -105,7 +126,7 @@ The  "-s" parameter controls whether processing continues or stops when the proc
 ## Input File Filters
 
      
-### TestInputFilter.py
+### input_filter.py
       ...
     def inp_filtr(input_fn):
         print("Filtr %s" % input_fn)
@@ -116,7 +137,7 @@ The  "-s" parameter controls whether processing continues or stops when the proc
         
 ### 
 
-    > python TestInputFilter.py -id testfiles
+    > python input_filter.py -id testfiles
     Filtr .nosee.txt
     Filtr f1.txt
     Filtr f1.xml
@@ -135,7 +156,7 @@ The `addargs` process allows additional arguments to be added to the argument pa
 
 The `postparse` process allows the validation and processing of the parsed input arguments
 
-### TestOptions.py
+### options.py
     import dirlistproc
     import argparse
     
@@ -161,14 +182,14 @@ The `postparse` process allows the validation and processing of the parsed input
         
 ### Execution
 
-    > python TestOptions.py -id testfiles -od foo
+    > python options.py -id testfiles -od foo
     Converting testfiles/f1.xml to foo/f1.txt
     Converting testfiles/f2.xml to foo/f2.txt
     Converting testfiles/d1/f3.xml to foo/d1/f3.txt
     Converting testfiles/d1/d2/f4.xml to foo/d1/d2/f4.txt
     Total=4 Successful=4
     >
-    >python TestOptions.py -id testfiles -od foo -n
+    >python options.py -id testfiles -od foo -n
     WARNING: no processing is occurring 
     Converting testfiles/f1.xml to foo/f1.txt
     Converting testfiles/f2.xml to foo/f2.txt

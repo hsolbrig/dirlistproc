@@ -30,6 +30,4 @@
 
 """ Directory based input and output processor. """
 
-__version__ = '0.1.10-dev'
-
 from dirlistproc.DirectoryListProcessor import DirectoryListProcessor
