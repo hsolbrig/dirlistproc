@@ -30,11 +30,13 @@ import argparse
 import os
 import sys
 import traceback
+from typing import List, Optional, Callable
 
 
 class DirectoryListProcessor:
-    def __init__(self, args: list, description: str, infile_suffix: str, outfile_suffix: str, addargs=None,
-                 postparse=None):
+    def __init__(self, args: Optional(List[str]), description: str, infile_suffix: Optional(str),
+                 outfile_suffix: Optional(str), addargs: Optional[Callable[[argparse.ArgumentParser], None]]=None,
+                 postparse: Optional[Callable[[argparse.Namespace], None]]=None) -> None:
         """ Build a directory list processor
         :param args: Input arguments such as supplied from sys.argv.  None means use sys.argv
         :param description: Description of the function.  Appears in a help string
@@ -70,7 +72,7 @@ class DirectoryListProcessor:
         print("***** ERROR: %s" % ifn, file=sys.stderr)
         print(str(e), file=sys.stderr)
 
-    def _call_proc(self, proc, ifn: str, ofn: str):
+    def _call_proc(self, proc, ifn: Optional[str], ofn: str):
         rslt = False
         try:
             rslt = proc(ifn, ofn, self.opts)

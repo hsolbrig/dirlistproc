@@ -25,13 +25,23 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
+import sys
+
+if sys.version_info < (3, 5):
+    install_requires = ["typing"]
+else:
+    install_requires = []
 
 setup(
     name='dirlistproc',
-    version='v1.0.0-beta',
+    version='1.0.0rc2',
     packages=['dirlistproc'],
     url='http://github.com/hsolbrig/dirlistproc',
+    install_requires=install_requires,
     license='BSD',
     author='Harold Solbrig',
     author_email='solbrig.harold@mayo.edu',
