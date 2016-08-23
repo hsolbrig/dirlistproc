@@ -30,7 +30,7 @@ import argparse
 import os
 import sys
 import traceback
-from typing import List, Optional, Callable, Tuple
+from typing import List, Optional, Callable, Tuple, Dict
 
 
 class DirectoryListProcessor:
@@ -95,11 +95,15 @@ class DirectoryListProcessor:
 
     def run(self,
             proc: Callable[[Optional[str], Optional[str], argparse.Namespace], Optional[bool]],
-            file_filter: Optional[Callable[[str], bool]]=None) -> Tuple[int, int]:
+            file_filter: Optional[Callable[[str], bool]]=None,
+            file_filter_2: Optional[Callable[[Optional[str], str, argparse.Namespace], bool]]=None) \
+            -> Tuple[int, int]:
         """ Run the directory list processor calling a function per file.
         :param proc: Process to invoke. Args: input_file_name, output_file_name, argparse options. Return pass or fail.
                      No return also means pass
         :param file_filter: Additional filter for testing file names, types, etc.
+        :param file_filter_2: File filter that includes directory, filename and opts
+                        (separate for backwards compatibility)
         :return: tuple - (number of files passed to proc: int, number of files that passed proc)
         """
         nfiles = 0
@@ -114,20 +118,22 @@ class DirectoryListProcessor:
                     if self._call_proc(proc, fn, self._outfile_name('', fn, outfile_idx=file_idx)):
                         nsuccess += 1
                     elif self.opts.stoponerror:
-                        break
+                        return nfiles, nsuccess
         elif not self.opts.indir:
             nfiles = 1
             nsuccess = 1 if self._call_proc(proc, None, self._outfile_name('', '')) else 0
         else:
             for dirpath, _, filenames in os.walk(self.opts.indir):
                 for fn in filenames:
-                    if (not file_filter or file_filter(fn)) and \
-                            not fn.startswith('.') and fn.endswith(self.infile_suffix):
-                        nfiles += 1
-                        if self._call_proc(proc, os.path.join(dirpath, fn), self._outfile_name(dirpath, fn)):
-                            nsuccess += 1
-                        elif self.opts.stoponerror:
-                            return nfiles, nsuccess
+                    # Passing either (or both) file filters skips the '.' and suffix tests
+                    if not fn.startswith('.') and fn.endswith(self.infile_suffix):
+                        if (not file_filter or file_filter(fn)) and \
+                           (not file_filter_2 or file_filter_2(fn, dirpath, self.opts)):
+                            nfiles += 1
+                            if self._call_proc(proc, os.path.join(dirpath, fn), self._outfile_name(dirpath, fn)):
+                                nsuccess += 1
+                            elif self.opts.stoponerror:
+                                return nfiles, nsuccess
 
         return nfiles, nsuccess
 

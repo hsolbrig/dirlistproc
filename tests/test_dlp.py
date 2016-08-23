@@ -163,6 +163,19 @@ class MyTestCase(unittest.TestCase):
         def write(self, txt):
             pass
 
+    def test_directory_filter(self):
+        args = "-id testfiles -od testout"
+
+        def file_filter(ifn, indir, opts:argparse.Namespace):
+            rval = "testfiles/" in indir or not ifn.startswith("f1")
+            return rval
+
+        def tproc(ifn, ofn, _):
+            return True
+
+        dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".foo")
+        self.assertEqual((3, 3), dlp.run(tproc, file_filter_2=file_filter))
+
     def test_multiple_files(self):
         # Ground sys.stderr
         glob_sys_stderr = sys.stderr
