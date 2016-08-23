@@ -30,7 +30,7 @@ import argparse
 import os
 import sys
 import traceback
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Tuple
 
 
 class DirectoryListProcessor:
@@ -54,54 +54,71 @@ class DirectoryListProcessor:
         parser.add_argument("-od", "--outdir", help="Output directory")
         parser.add_argument("-f", "--flatten", help="Flatten output directory", action="store_true")
         parser.add_argument("-s", "--stoponerror", help="Stop on processing error", action="store_true")
-        if addargs:
+        if addargs is not None:
             addargs(parser)
         self.opts = parser.parse_args(args if args is not None else sys.argv[1:])
         n_infiles = len(self.opts.infile) if self.opts.infile else 0
         n_outfiles = len(self.opts.outfile) if self.opts.outfile else 0
         if (n_infiles > 1 or n_outfiles > 1) and n_infiles != n_outfiles:
             parser.error("Number of input and output files must match")
-        if postparse:
+        if postparse is not None:
             postparse(self.opts)
 
     @staticmethod
-    def _proc_error(ifn, e):
+    def _proc_error(ifn: str, e: Exception) -> None:
+        """ Report an error
+        :param ifn: Input file name
+        :param e: Exception to report
+        """
         type_, value_, traceback_ = sys.exc_info()
         traceback.print_tb(traceback_, file=sys.stderr)
         print(file=sys.stderr)
         print("***** ERROR: %s" % ifn, file=sys.stderr)
         print(str(e), file=sys.stderr)
 
-    def _call_proc(self, proc, ifn: Optional[str], ofn: str):
+    def _call_proc(self,
+                   proc: Callable[[Optional[str], Optional[str], argparse.Namespace], bool],
+                   ifn: Optional[str],
+                   ofn: Optional[str]) -> bool:
+        """ Call the actual processor and intercept anything that goes wrong
+        :param proc: Process to call
+        :param ifn: Input file name to process.  If absent, typical use is stdin
+        :param ofn: Output file name. If absent, typical use is stdout
+        :return: true means process was successful
+        """
         rslt = False
         try:
             rslt = proc(ifn, ofn, self.opts)
         except Exception as e:
             self._proc_error(ifn, e)
-        return rslt or rslt is None
+        return True if rslt or rslt is None else False
 
-    def run(self, proc, file_filter=None) -> tuple:
+    def run(self,
+            proc: Callable[[Optional[str], Optional[str], argparse.Namespace], Optional[bool]],
+            file_filter: Optional[Callable[[str], bool]]=None) -> Tuple[int, int]:
         """ Run the directory list processor calling a function per file.
-        :param proc: Process to invoke
+        :param proc: Process to invoke. Args: input_file_name, output_file_name, argparse options. Return pass or fail.
+                     No return also means pass
         :param file_filter: Additional filter for testing file names, types, etc.
-        :return: tuple - (num_files_processed: int, num_files_passed)
+        :return: tuple - (number of files passed to proc: int, number of files that passed proc)
         """
+        nfiles = 0
+        nsuccess = 0
         if self.opts.infile:
             nsuccess = 0
             for file_idx in range(len(self.opts.infile)):
                 in_f = self.opts.infile[file_idx]
                 fn = os.path.join(self.opts.indir, in_f) if self.opts.indir else in_f
                 if not file_filter or file_filter(fn):
+                    nfiles += 1
                     if self._call_proc(proc, fn, self._outfile_name('', fn, outfile_idx=file_idx)):
                         nsuccess += 1
                     elif self.opts.stoponerror:
                         break
-            return len(self.opts.infile), nsuccess
         elif not self.opts.indir:
-            return 1, 1 if self._call_proc(proc, None, self._outfile_name('', '')) else 0
+            nfiles = 1
+            nsuccess = 1 if self._call_proc(proc, None, self._outfile_name('', '')) else 0
         else:
-            nfiles = 0
-            nsuccess = 0
             for dirpath, _, filenames in os.walk(self.opts.indir):
                 for fn in filenames:
                     if (not file_filter or file_filter(fn)) and \
@@ -112,9 +129,9 @@ class DirectoryListProcessor:
                         elif self.opts.stoponerror:
                             return nfiles, nsuccess
 
-            return nfiles, nsuccess
+        return nfiles, nsuccess
 
-    def _outfile_name(self, dirpath: str, infile: str, outfile_idx=0) -> str:
+    def _outfile_name(self, dirpath: str, infile: str, outfile_idx: int=0) -> Optional[str]:
         """ Construct the output file name from the input file.  If a single output file was named and there isn't a
         directory, return the output file.
         :param dirpath: Directory path to infile
@@ -123,16 +140,18 @@ class DirectoryListProcessor:
         :return: Full name of output file or None if output is not otherwise supplied
         """
         if self.opts.outfile or not self.opts.outdir:
-            return os.path.join(self.opts.outdir, self.opts.outfile[outfile_idx]) \
-                if self.opts.outdir else self.opts.outfile[outfile_idx] if self.opts.outfile is not None else None
+            return os.path.join(self.opts.outdir, self.opts.outfile[outfile_idx]) if self.opts.outdir \
+                else self.opts.outfile[outfile_idx] if self.opts.outfile is not None\
+                else None
         else:
             relpath = dirpath[len(self.opts.indir) + 1:] if not self.opts.flatten and self.opts.indir else ''
             return os.path.join(self.opts.outdir, relpath,
                                 os.path.split(infile)[1][:-len(self.infile_suffix)] + self.outfile_suffix)
 
 
-def default_proc(ifn, ofn, _):
-    print("Input file name: %s -- Output file name: %s" % (ifn, ofn))
+def default_proc(ifn: Optional[str], ofn: Optional[str], _: argparse.Namespace) -> bool:
+    print("Input file name: %s -- Output file name: %s" % (ifn if ifn is not None else "stdin",
+                                                           ofn if ofn is not None else "stdout"))
     return True
 
 if __name__ == '__main__':

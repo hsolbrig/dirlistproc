@@ -38,7 +38,7 @@ else:
 
 setup(
     name='dirlistproc',
-    version='1.0.3',
+    version='1.1.0',
     packages=['dirlistproc'],
     url='http://github.com/hsolbrig/dirlistproc',
     install_requires=install_requires,
@@ -50,7 +50,7 @@ setup(
         'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3 :: Only',
