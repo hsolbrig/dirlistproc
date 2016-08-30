@@ -30,7 +30,7 @@ import argparse
 import os
 import sys
 import traceback
-from typing import List, Optional, Callable, Tuple, Dict
+from typing import List, Optional, Callable, Tuple
 
 
 class DirectoryListProcessor:
@@ -93,6 +93,17 @@ class DirectoryListProcessor:
             self._proc_error(ifn, e)
         return True if rslt or rslt is None else False
 
+    def _check_filter(self,
+                      fn: Optional[str],
+                      dirpath: Optional[str],
+                      file_filter: Optional[Callable[[str], bool]],
+                      file_filter_2: Optional[Callable[[Optional[str], str, argparse.Namespace], bool]]) -> bool:
+        rval = (fn is None or fn.endswith(self.infile_suffix)) and \
+           (not file_filter or file_filter(fn)) and \
+           (not file_filter_2 or file_filter_2(fn, dirpath if dirpath is not None else '', self.opts)) and \
+           (file_filter or file_filter_2 or fn is None or not fn.startswith('.'))
+        return rval
+
     def run(self,
             proc: Callable[[Optional[str], Optional[str], argparse.Namespace], Optional[bool]],
             file_filter: Optional[Callable[[str], bool]]=None,
@@ -108,32 +119,36 @@ class DirectoryListProcessor:
         """
         nfiles = 0
         nsuccess = 0
+
+        # List of one or more input and output files
         if self.opts.infile:
-            nsuccess = 0
             for file_idx in range(len(self.opts.infile)):
                 in_f = self.opts.infile[file_idx]
-                fn = os.path.join(self.opts.indir, in_f) if self.opts.indir else in_f
-                if not file_filter or file_filter(fn):
+                if self._check_filter(in_f, self.opts.indir, file_filter, file_filter_2):
+                    fn = os.path.join(self.opts.indir, in_f) if self.opts.indir else in_f
                     nfiles += 1
                     if self._call_proc(proc, fn, self._outfile_name('', fn, outfile_idx=file_idx)):
                         nsuccess += 1
                     elif self.opts.stoponerror:
                         return nfiles, nsuccess
+
+        # Single input from the command line
         elif not self.opts.indir:
-            nfiles = 1
-            nsuccess = 1 if self._call_proc(proc, None, self._outfile_name('', '')) else 0
+            if self._check_filter(None, None, file_filter, file_filter_2):
+                nfiles += 1
+                if self._call_proc(proc, None, self._outfile_name('', '')):
+                    nsuccess += 1
+
+        # Input directory that needs to be navigated
         else:
             for dirpath, _, filenames in os.walk(self.opts.indir):
                 for fn in filenames:
-                    # Passing either (or both) file filters skips the '.' and suffix tests
-                    if not fn.startswith('.') and fn.endswith(self.infile_suffix):
-                        if (not file_filter or file_filter(fn)) and \
-                           (not file_filter_2 or file_filter_2(fn, dirpath, self.opts)):
-                            nfiles += 1
-                            if self._call_proc(proc, os.path.join(dirpath, fn), self._outfile_name(dirpath, fn)):
-                                nsuccess += 1
-                            elif self.opts.stoponerror:
-                                return nfiles, nsuccess
+                    if self._check_filter(fn, dirpath, file_filter, file_filter_2):
+                        nfiles += 1
+                        if self._call_proc(proc, os.path.join(dirpath, fn), self._outfile_name(dirpath, fn)):
+                            nsuccess += 1
+                        elif self.opts.stoponerror:
+                            return nfiles, nsuccess
 
         return nfiles, nsuccess
 

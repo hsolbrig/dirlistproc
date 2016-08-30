@@ -167,7 +167,7 @@ class MyTestCase(unittest.TestCase):
         args = "-id testfiles -od testout"
 
         def file_filter(ifn, indir, opts:argparse.Namespace):
-            rval = "testfiles/" in indir or not ifn.startswith("f1")
+            rval = indir.startswith("testfiles") and not ifn.startswith("f1")
             return rval
 
         def tproc(ifn, ofn, _):
