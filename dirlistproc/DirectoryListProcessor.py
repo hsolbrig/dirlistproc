@@ -47,20 +47,20 @@ class DirectoryListProcessor:
         """
         self.infile_suffix = infile_suffix
         self.outfile_suffix = outfile_suffix
-        parser = argparse.ArgumentParser(description=description)
-        parser.add_argument("-i", "--infile", help="Input file(s)", nargs="*")
-        parser.add_argument("-id", "--indir", help="Input directory")
-        parser.add_argument("-o", "--outfile", help="Output file(s)", nargs="*")
-        parser.add_argument("-od", "--outdir", help="Output directory")
-        parser.add_argument("-f", "--flatten", help="Flatten output directory", action="store_true")
-        parser.add_argument("-s", "--stoponerror", help="Stop on processing error", action="store_true")
+        self.parser = argparse.ArgumentParser(description=description)
+        self.parser.add_argument("-i", "--infile", help="Input file(s)", nargs="*")
+        self.parser.add_argument("-id", "--indir", help="Input directory")
+        self.parser.add_argument("-o", "--outfile", help="Output file(s)", nargs="*")
+        self.parser.add_argument("-od", "--outdir", help="Output directory")
+        self.parser.add_argument("-f", "--flatten", help="Flatten output directory", action="store_true")
+        self.parser.add_argument("-s", "--stoponerror", help="Stop on processing error", action="store_true")
         if addargs is not None:
-            addargs(parser)
-        self.opts = parser.parse_args(args if args is not None else sys.argv[1:])
+            addargs(self.parser)
+        self.opts = self.parser.parse_args(args if args is not None else sys.argv[1:])
         n_infiles = len(self.opts.infile) if self.opts.infile else 0
         n_outfiles = len(self.opts.outfile) if self.opts.outfile else 0
         if (n_infiles > 1 or n_outfiles > 1) and n_infiles != n_outfiles:
-            parser.error("Number of input and output files must match")
+            self.parser.error("Number of input and output files must match")
         if postparse is not None:
             postparse(self.opts)
 
