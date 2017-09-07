@@ -36,39 +36,40 @@ It accepts command line arguments that allow the specification of:
 ## Default help display
     > python DirectoryListProcessor.py -h
     usage: DirectoryListProcessor.py [-h] [-i [INFILE [INFILE ...]]] [-id INDIR]
-                                     [-o [OUTFILE [OUTFILE ...]]] [-od OUTDIR]
-                                     [-f] [-s]
-    
-    DLP Framework
-    
-    optional arguments:
-      -h, --help            show this help message and exit
-      -i [INFILE [INFILE ...]], --infile [INFILE [INFILE ...]]
-                            Input file(s)
-      -id INDIR, --indir INDIR
-                            Input directory
-      -o [OUTFILE [OUTFILE ...]], --outfile [OUTFILE [OUTFILE ...]]
-                            Output file(s)
-      -od OUTDIR, --outdir OUTDIR
-                            Output directory
-      -f, --flatten         Flatten output directory
-      -s, --stoponerror     Stop on processing error
+                              [-o [OUTFILE [OUTFILE ...]]] [-od OUTDIR] [-f]
+                              [-s]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i [INFILE [INFILE ...]], --infile [INFILE [INFILE ...]]
+                        Input file(s)
+  -id INDIR, --indir INDIR
+                        Input directory
+  -o [OUTFILE [OUTFILE ...]], --outfile [OUTFILE [OUTFILE ...]]
+                        Output file(s)
+  -od OUTDIR, --outdir OUTDIR
+                        Output directory
+  -f, --flatten         Flatten output directory
+  -s, --stoponerror     Stop on processing error
 
 ## Use
 The `DirectoryListProcessor` constructor takes 6 input arguments:
 
 1. the argument list -- if `None`, `sys.argv[1:]` is used
-2. the name of the program for the `argparse` help function
+2. the description of the program for the `argparse` help function
 3. the input file suffix filter.  If `None`, no filter is applied
 4. the output file suffix.
-5. process to add arguments before parse (optional) -- signature: `addargs(parser:argparse.ArgumentParser):`
-6. process to valid and process parsed argument (optional) -- signature: `postparse(opts:argparse.Namespace)`
+5. process to add arguments before parse (optional) -- signature: `addargs(parser:argparse.ArgumentParser) -> None:`
+6. process to valid and process parsed argument (optional) -- signature: `postparse(opts:argparse.Namespace) -> None:`
+7. optional `noexit: bool`if True, override the argparse system.exit and return whether the parse was successful in `dlp.successful_parse`
+8. optional `fromfile_prefix_chars: str`. prefix used to reference configuration file as alternative to command line input.
 
 (Note that file names that begin with "." are always ignored)
 
-The run function takes two arguments:
+The run function takes three arguments:
 1. the file processor -- signature: `proc(input_file_name: str, output_file_name: str, opts: argparse.Namespace) -> bool:`
-2. the input file filter (optional) -- signature: `filter(input_file_name) -> bool:`
+2. the input file filter (optional) -- signature: `filter(input_file_name: str) -> bool:`
+3. an alternative input file filter (optional) -- signature: `filter2(input_directory: Optional[str], input_file_name: str, opts: argparse.Namespace) -> bool`
 
 ## Examples
 

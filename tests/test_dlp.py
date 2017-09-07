@@ -34,6 +34,25 @@ import sys
 import dirlistproc
 
 
+help_output = """usage: _jb_unittest_runner.py [-h] [-i [INFILE [INFILE ...]]] [-id INDIR]
+                              [-o [OUTFILE [OUTFILE ...]]] [-od OUTDIR] [-f]
+                              [-s]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i [INFILE [INFILE ...]], --infile [INFILE [INFILE ...]]
+                        Input file(s)
+  -id INDIR, --indir INDIR
+                        Input directory
+  -o [OUTFILE [OUTFILE ...]], --outfile [OUTFILE [OUTFILE ...]]
+                        Output file(s)
+  -od OUTDIR, --outdir OUTDIR
+                        Output directory
+  -f, --flatten         Flatten output directory
+  -s, --stoponerror     Stop on processing error
+"""
+
+
 class MyTestCase(unittest.TestCase):
     def test_single_in_out(self):
         def t1proc(ifn, ofn, _):
@@ -248,6 +267,14 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(["foo", "bar"], dlp.opts.outfile)
         self.assertTrue(dlp.opts.stoponerror)
         self.assertTrue(["testfiles/d1/f3.xml", "testfiles/d1/d2/f4.xml"], dlp.opts.infile)
+
+    def test_help(self):
+        save_stdout = sys.stdout
+        output = io.StringIO()
+        sys.stdout = output
+        dirlistproc.DirectoryListProcessor(["-h"], "", ".xml", ".foo", noexit=True)
+        sys.stdout = save_stdout
+        self.assertEqual(help_output, output.getvalue())
 
 
 if __name__ == '__main__':
