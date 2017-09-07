@@ -38,7 +38,7 @@ else:
 
 setup(
     name='dirlistproc',
-    version='1.2.2',
+    version='1.3.1',
     packages=['dirlistproc'],
     url='http://github.com/hsolbrig/dirlistproc',
     install_requires=install_requires,

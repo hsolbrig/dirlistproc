@@ -33,10 +33,25 @@ import traceback
 from typing import List, Optional, Callable, Tuple
 
 
+def _parser_exit(parser: argparse.ArgumentParser, proc: "DirectoryListProcessor", _=0,
+                 message: Optional[str]=None) -> None:
+    """
+    Override the default exit in the parser.
+    :param parser:
+    :param success_indicator: set to false if this is called
+    :param _: exit code.  Unused because we don't exit
+    :param message: Optional message
+    """
+    if message:
+        parser._print_message(message, sys.stderr)
+    proc.successful_parse = False
+
+
 class DirectoryListProcessor:
     def __init__(self, args: Optional[List[str]], description: str, infile_suffix: Optional[str],
                  outfile_suffix: Optional[str], addargs: Optional[Callable[[argparse.ArgumentParser], None]]=None,
-                 postparse: Optional[Callable[[argparse.Namespace], None]]=None) -> None:
+                 postparse: Optional[Callable[[argparse.Namespace], None]]=None,
+                 noexit: bool=False):
         """ Build a directory list processor
         :param args: Input arguments such as supplied from sys.argv.  None means use sys.argv
         :param description: Description of the function.  Appears in a help string
@@ -44,9 +59,12 @@ class DirectoryListProcessor:
         :param outfile_suffix: Suffix to add to output file.  If absent, name is same as input
         :param addargs: Function to add arguments before parsing.  Signature: addargs(parser: argparse.ArgumentParser)
         :param postparse: Function to review arguments post parsing.  Signature: postparse(opts: argparse.Namespace)
+        :param noexit: Do not exit the parser on error. Primarily for testing.  If an exitable error occurs,
+        succesful_parse is set to False
         """
         self.infile_suffix = infile_suffix
         self.outfile_suffix = outfile_suffix
+        self.successful_parse = True
         self.parser = argparse.ArgumentParser(description=description)
         self.parser.add_argument("-i", "--infile", help="Input file(s)", nargs="*")
         self.parser.add_argument("-id", "--indir", help="Input directory")
@@ -56,13 +74,16 @@ class DirectoryListProcessor:
         self.parser.add_argument("-s", "--stoponerror", help="Stop on processing error", action="store_true")
         if addargs is not None:
             addargs(self.parser)
+        if noexit:
+            self.parser.exit = lambda **kwargs: _parser_exit(self.parser, self, **kwargs)
         self.opts = self.parser.parse_args(args if args is not None else sys.argv[1:])
-        n_infiles = len(self.opts.infile) if self.opts.infile else 0
-        n_outfiles = len(self.opts.outfile) if self.opts.outfile else 0
-        if (n_infiles > 1 or n_outfiles > 1) and n_infiles != n_outfiles:
-            self.parser.error("Number of input and output files must match")
-        if postparse is not None:
-            postparse(self.opts)
+        if self.successful_parse:
+            n_infiles = len(self.opts.infile) if self.opts.infile else 0
+            n_outfiles = len(self.opts.outfile) if self.opts.outfile else 0
+            if (n_infiles > 1 or n_outfiles > 1) and n_infiles != n_outfiles:
+                self.parser.error("Number of input and output files must match")
+            if postparse is not None:
+                postparse(self.opts)
 
     @staticmethod
     def _proc_error(ifn: str, e: Exception) -> None:

@@ -27,6 +27,7 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 import argparse
+import io
 import unittest
 import sys
 
@@ -159,14 +160,11 @@ class MyTestCase(unittest.TestCase):
         dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
         self.assertEqual((1, 1), dlp.run(tproc))
 
-    class MemFile:
-        def write(self, txt):
-            pass
 
     def test_directory_filter(self):
         args = "-id testfiles -od testout"
 
-        def file_filter(ifn, indir, opts:argparse.Namespace):
+        def file_filter(ifn, indir, _:argparse.Namespace):
             rval = indir.startswith("testfiles") and not ifn.startswith("f1")
             return rval
 
@@ -179,7 +177,8 @@ class MyTestCase(unittest.TestCase):
     def test_multiple_files(self):
         # Ground sys.stderr
         glob_sys_stderr = sys.stderr
-        sys.stderr = self.MemFile()
+        error_output = ""
+        sys.stderr = io.StringIO(error_output)
 
         # Input and output matches
         args = "-i foo.xml bar.xml -o foo.txt bar.txt"
@@ -193,17 +192,17 @@ class MyTestCase(unittest.TestCase):
         # More output than input -- not allowed
         args = "-i foo.xml -o foo.txt bar.txt"
         with self.assertRaises(SystemExit):
-            dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
+            dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
 
         # More input than output -- not allowed
         args = "-i foo.xml bar.xml -o foo.txt"
         with self.assertRaises(SystemExit):
-            dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
+            dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
 
         # Two outputs with no inputs -- not allowed
         args = "-o foo.txt bar.txt"
         with self.assertRaises(SystemExit):
-            dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
+            dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
 
         # One input, no outputs -- ok
         args = "-i foo.xml"
@@ -224,6 +223,21 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual((1, 1), dlp.run(tproc3))
 
         sys.stderr = glob_sys_stderr
+
+    def test_parser_presence(self):
+        dlp = dirlistproc.DirectoryListProcessor([], "", ".xml", ".foo")
+        self.assertIsInstance(dlp.parser, argparse.ArgumentParser)
+
+    def test_nohalt(self):
+        # Don't print the help text
+        glob_sys_stderr = sys.stdout
+        error_output = ""
+        sys.stdout = io.StringIO(error_output)
+        dlp = dirlistproc.DirectoryListProcessor(["-h"], "", ".xml", ".foo", noexit=True)
+        self.assertFalse(dlp.successful_parse)
+        dlp = dirlistproc.DirectoryListProcessor([], "", ".xml", ".foo", noexit=True)
+        self.assertTrue(dlp.successful_parse)
+        sys.stdout = glob_sys_stderr
 
 
 if __name__ == '__main__':
