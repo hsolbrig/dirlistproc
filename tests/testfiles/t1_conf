@@ -1,0 +1,2 @@
+-s
+-i testfiles/d1/f3.xml testfiles/d1/d2/f4.xml

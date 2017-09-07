@@ -30,6 +30,7 @@ import argparse
 import os
 import sys
 import traceback
+import shlex
 from typing import List, Optional, Callable, Tuple
 
 
@@ -51,7 +52,7 @@ class DirectoryListProcessor:
     def __init__(self, args: Optional[List[str]], description: str, infile_suffix: Optional[str],
                  outfile_suffix: Optional[str], addargs: Optional[Callable[[argparse.ArgumentParser], None]]=None,
                  postparse: Optional[Callable[[argparse.Namespace], None]]=None,
-                 noexit: bool=False):
+                 noexit: bool=False, fromfile_prefix_chars: Optional[str]=None):
         """ Build a directory list processor
         :param args: Input arguments such as supplied from sys.argv.  None means use sys.argv
         :param description: Description of the function.  Appears in a help string
@@ -61,11 +62,13 @@ class DirectoryListProcessor:
         :param postparse: Function to review arguments post parsing.  Signature: postparse(opts: argparse.Namespace)
         :param noexit: Do not exit the parser on error. Primarily for testing.  If an exitable error occurs,
         succesful_parse is set to False
+        :param fromfile_prefix_chars: parser file prefix characters
         """
         self.infile_suffix = infile_suffix
         self.outfile_suffix = outfile_suffix
         self.successful_parse = True
-        self.parser = argparse.ArgumentParser(description=description)
+        self.fromfile_prefix_chars = fromfile_prefix_chars if fromfile_prefix_chars else ""
+        self.parser = argparse.ArgumentParser(description=description, fromfile_prefix_chars=fromfile_prefix_chars)
         self.parser.add_argument("-i", "--infile", help="Input file(s)", nargs="*")
         self.parser.add_argument("-id", "--indir", help="Input directory")
         self.parser.add_argument("-o", "--outfile", help="Output file(s)", nargs="*")
@@ -76,7 +79,7 @@ class DirectoryListProcessor:
             addargs(self.parser)
         if noexit:
             self.parser.exit = lambda **kwargs: _parser_exit(self.parser, self, **kwargs)
-        self.opts = self.parser.parse_args(args if args is not None else sys.argv[1:])
+        self.opts = self.parser.parse_args(self.decode_file_args(args if args is not None else sys.argv[1:]))
         if self.successful_parse:
             n_infiles = len(self.opts.infile) if self.opts.infile else 0
             n_outfiles = len(self.opts.outfile) if self.opts.outfile else 0
@@ -84,6 +87,22 @@ class DirectoryListProcessor:
                 self.parser.error("Number of input and output files must match")
             if postparse is not None:
                 postparse(self.opts)
+
+    def decode_file_args(self, argv: List[str]) -> List[str]:
+        """
+        Preprocess any arguments that begin with the fromfile prefix char(s).
+        This replaces the one in Argparse because it
+            a) doesn't process "-x y" correctly and
+            b) ignores bad files
+        :param argv: raw options list
+        :return: options list with file references replaced
+        """
+        for arg in [arg for arg in argv if arg[0] in self.fromfile_prefix_chars]:
+            argv.remove(arg)
+            with open(arg[1:]) as config_file:
+                argv += shlex.split(config_file.read())
+                return self.decode_file_args(argv)
+        return argv
 
     @staticmethod
     def _proc_error(ifn: str, e: Exception) -> None:

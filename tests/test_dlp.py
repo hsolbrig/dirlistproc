@@ -160,11 +160,10 @@ class MyTestCase(unittest.TestCase):
         dlp = dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
         self.assertEqual((1, 1), dlp.run(tproc))
 
-
     def test_directory_filter(self):
         args = "-id testfiles -od testout"
 
-        def file_filter(ifn, indir, _:argparse.Namespace):
+        def file_filter(ifn, indir: str, _: argparse.Namespace):
             rval = indir.startswith("testfiles") and not ifn.startswith("f1")
             return rval
 
@@ -238,6 +237,17 @@ class MyTestCase(unittest.TestCase):
         dlp = dirlistproc.DirectoryListProcessor([], "", ".xml", ".foo", noexit=True)
         self.assertTrue(dlp.successful_parse)
         sys.stdout = glob_sys_stderr
+
+    def test_file_args(self):
+        with self.assertRaises(FileNotFoundError):
+            dirlistproc.DirectoryListProcessor("-f -o foo @t_conf".split(), "", ".xml", ".foo",
+                                               fromfile_prefix_chars='@')
+        dlp = dirlistproc.DirectoryListProcessor("-f -o foo bar @testfiles/t1_conf".split(), "", ".xml", ".foo",
+                                                 fromfile_prefix_chars='@')
+        self.assertTrue(dlp.opts.flatten)
+        self.assertEqual(["foo", "bar"], dlp.opts.outfile)
+        self.assertTrue(dlp.opts.stoponerror)
+        self.assertTrue(["testfiles/d1/f3.xml", "testfiles/d1/d2/f4.xml"], dlp.opts.infile)
 
 
 if __name__ == '__main__':
