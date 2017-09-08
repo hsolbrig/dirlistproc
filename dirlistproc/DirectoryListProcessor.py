@@ -78,12 +78,12 @@ class DirectoryListProcessor:
         if addargs is not None:
             addargs(self.parser)
         if noexit:
-            self.parser.exit = lambda **kwargs: _parser_exit(self.parser, self, **kwargs)
+            self.parser.exit = lambda *args: _parser_exit(self.parser, self, *args)
         self.opts = self.parser.parse_args(self.decode_file_args(args if args is not None else sys.argv[1:]))
         if self.successful_parse:
             n_infiles = len(self.opts.infile) if self.opts.infile else 0
             n_outfiles = len(self.opts.outfile) if self.opts.outfile else 0
-            if (n_infiles > 1 or n_outfiles > 1) and n_infiles != n_outfiles:
+            if (n_infiles > 1 or n_outfiles > 1) and n_infiles != n_outfiles and n_outfiles > 0:
                 self.parser.error("Number of input and output files must match")
             if postparse is not None:
                 postparse(self.opts)

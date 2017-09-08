@@ -130,6 +130,26 @@ class MyTestCase(unittest.TestCase):
         dlp = dirlistproc.DirectoryListProcessor([], "", ".xml", ".foo")
         self.assertEqual((1, 1), dlp.run(tproc))
 
+    def test_no_outfiles(self):
+        # No output files passes
+        dlp = dirlistproc.DirectoryListProcessor("-i a b".split(), "", ".xml", ".foo", noexit=True)
+        self.assertTrue(dlp.successful_parse)
+        # Two input files and one output directory passes
+        dlp = dirlistproc.DirectoryListProcessor("-i a b -od bar".split(), "", ".xml", ".foo", noexit=True)
+        self.assertTrue(dlp.successful_parse)
+        # Two input files and one output file does not pass
+        dlp = dirlistproc.DirectoryListProcessor("-i a b -o c".split(), "", ".xml", ".foo", noexit=True)
+        self.assertFalse(dlp.successful_parse)
+        # One input file and two output files does not pass
+        dlp = dirlistproc.DirectoryListProcessor("-i a -o b c".split(), "", ".xml", ".foo", noexit=True)
+        self.assertFalse(dlp.successful_parse)
+        # An input directory and an output file passes
+        dlp = dirlistproc.DirectoryListProcessor("-id a -o b".split(), "", ".xml", ".foo", noexit=True)
+        self.assertTrue(dlp.successful_parse)
+        # An input directory and two output files fails
+        dlp = dirlistproc.DirectoryListProcessor("-id a -o b c".split(), "", ".xml", ".foo", noexit=True)
+        self.assertFalse(dlp.successful_parse)
+
     def test_diff_prefix_length(self):
 
         def t2proc(ifn, ofn, _):
