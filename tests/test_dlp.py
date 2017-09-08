@@ -137,8 +137,14 @@ class MyTestCase(unittest.TestCase):
         # Two input files and one output directory passes
         dlp = dirlistproc.DirectoryListProcessor("-i a b -od bar".split(), "", ".xml", ".foo", noexit=True)
         self.assertTrue(dlp.successful_parse)
-        # Two input files and one output file does not pass
+        # Two input files and one output file passes (merge operation)
         dlp = dirlistproc.DirectoryListProcessor("-i a b -o c".split(), "", ".xml", ".foo", noexit=True)
+        self.assertTrue(dlp.successful_parse)
+        # Two input files and three output files fails
+        dlp = dirlistproc.DirectoryListProcessor("-i a b -o c d e".split(), "", ".xml", ".foo", noexit=True)
+        self.assertFalse(dlp.successful_parse)
+        # Three input files and two output files fails
+        dlp = dirlistproc.DirectoryListProcessor("-i a b c -o c d".split(), "", ".xml", ".foo", noexit=True)
         self.assertFalse(dlp.successful_parse)
         # One input file and two output files does not pass
         dlp = dirlistproc.DirectoryListProcessor("-i a -o b c".split(), "", ".xml", ".foo", noexit=True)
@@ -232,15 +238,6 @@ class MyTestCase(unittest.TestCase):
         with self.assertRaises(SystemExit):
             dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
 
-        # More input than output -- not allowed
-        args = "-i foo.xml bar.xml -o foo.txt"
-        with self.assertRaises(SystemExit):
-            dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
-
-        # Two outputs with no inputs -- not allowed
-        args = "-o foo.txt bar.txt"
-        with self.assertRaises(SystemExit):
-            dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
 
         # One input, no outputs -- ok
         args = "-i foo.xml"

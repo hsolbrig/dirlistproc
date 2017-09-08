@@ -83,7 +83,7 @@ class DirectoryListProcessor:
         if self.successful_parse:
             n_infiles = len(self.opts.infile) if self.opts.infile else 0
             n_outfiles = len(self.opts.outfile) if self.opts.outfile else 0
-            if (n_infiles > 1 or n_outfiles > 1) and n_infiles != n_outfiles and n_outfiles > 0:
+            if (n_infiles > 1 or n_outfiles > 1) and n_infiles != n_outfiles and n_outfiles > 1:
                 self.parser.error("Number of input and output files must match")
             if postparse is not None:
                 postparse(self.opts)
