@@ -39,7 +39,6 @@ def _parser_exit(parser: argparse.ArgumentParser, proc: "DirectoryListProcessor"
     """
     Override the default exit in the parser.
     :param parser:
-    :param success_indicator: set to false if this is called
     :param _: exit code.  Unused because we don't exit
     :param message: Optional message
     """
@@ -138,7 +137,7 @@ class DirectoryListProcessor:
                       dirpath: Optional[str],
                       file_filter: Optional[Callable[[str], bool]],
                       file_filter_2: Optional[Callable[[Optional[str], str, argparse.Namespace], bool]]) -> bool:
-        rval = (fn is None or fn.endswith(self.infile_suffix)) and \
+        rval = (fn is None or ('://' in fn or fn.endswith(self.infile_suffix))) and \
            (not file_filter or file_filter(fn)) and \
            (not file_filter_2 or file_filter_2(fn, dirpath if dirpath is not None else '', self.opts)) and \
            (file_filter or file_filter_2 or fn is None or not fn.startswith('.'))
@@ -200,14 +199,28 @@ class DirectoryListProcessor:
         :param outfile_idx: Index into output file list (for multiple input/output files)
         :return: Full name of output file or None if output is not otherwise supplied
         """
-        if self.opts.outfile or not self.opts.outdir:
-            return os.path.join(self.opts.outdir, self.opts.outfile[outfile_idx]) if self.opts.outdir \
-                else self.opts.outfile[outfile_idx] if self.opts.outfile is not None\
-                else None
+        if not self.opts.outfile and not self.opts.outdir:
+            # Up to the process itself to decide what do do with it
+            return None
+
+        if self.opts.outfile:
+            # Output file specified - either one aggregate file or a 1 to 1 list
+            outfile_element = self.opts.outfile[0] if len(self.opts.outfile) == 1 else self.opts.outfile[outfile_idx]
+
+        elif self.opts.infile:
+            # Input file name(s) have been supplied
+            if '://' in infile:
+                # Input file is a URL -- generate an output file of the form "_url[n]"
+                outfile_element = "_url{}".format(outfile_idx + 1)
+            else:
+                outfile_element = os.path.basename(infile).rsplit('.', 1)[0]
+
         else:
+            # Doing an input directory to an output directory
             relpath = dirpath[len(self.opts.indir) + 1:] if not self.opts.flatten and self.opts.indir else ''
-            return os.path.join(self.opts.outdir, relpath,
-                                os.path.split(infile)[1][:-len(self.infile_suffix)] + self.outfile_suffix)
+            outfile_element = os.path.join(relpath, os.path.split(infile)[1][:-len(self.infile_suffix)])
+        return (os.path.join(self.opts.outdir, outfile_element) if self.opts.outdir else outfile_element) + \
+               (self.outfile_suffix if not self.opts.outfile and self.outfile_suffix else '')
 
 
 def default_proc(ifn: Optional[str], ofn: Optional[str], _: argparse.Namespace) -> bool:

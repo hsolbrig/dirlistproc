@@ -54,6 +54,21 @@ optional arguments:
 
 
 class MyTestCase(unittest.TestCase):
+    save_stderr = []
+
+    def _push_stderr(self) -> io:
+        self.save_stderr.append(sys.stderr)
+        output = io.StringIO()
+        sys.stderr = output
+        return output
+
+    def _pop_stderr(self) -> None:
+        if self.save_stderr:
+            sys.stderr = self.save_stderr.pop()
+
+    def tearDown(self):
+        self._pop_stderr()
+
     def test_single_in_out(self):
         def t1proc(ifn, ofn, _):
             self.assertEqual('inp.txt', ifn)
@@ -131,6 +146,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual((1, 1), dlp.run(tproc))
 
     def test_no_outfiles(self):
+        self._push_stderr()
         # No output files passes
         dlp = dirlistproc.DirectoryListProcessor("-i a b".split(), "", ".xml", ".foo", noexit=True)
         self.assertTrue(dlp.successful_parse)
@@ -155,6 +171,7 @@ class MyTestCase(unittest.TestCase):
         # An input directory and two output files fails
         dlp = dirlistproc.DirectoryListProcessor("-id a -o b c".split(), "", ".xml", ".foo", noexit=True)
         self.assertFalse(dlp.successful_parse)
+        self._pop_stderr()
 
     def test_diff_prefix_length(self):
 
@@ -237,7 +254,6 @@ class MyTestCase(unittest.TestCase):
         args = "-i foo.xml -o foo.txt bar.txt"
         with self.assertRaises(SystemExit):
             dirlistproc.DirectoryListProcessor(args.split(), "Test", '.xml', ".txt")
-
 
         # One input, no outputs -- ok
         args = "-i foo.xml"
