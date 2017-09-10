@@ -65,6 +65,19 @@ class Issue1TestCase(unittest.TestCase):
         dlp = DirectoryListProcessor(args.split(), "Test Processor", ".json", ".ttl")
         self.assertEqual((3, 3), dlp.run(t3proc))
 
+    def test_invalid_indir(self):
+        # Issue 2 - invalid input directory not detected
+        from dirlistproc import DirectoryListProcessor
+
+        args = "-id foo"
+        with self.assertRaises(SystemExit):
+            DirectoryListProcessor(args.split(), "Test Processor", ".json", ".ttl")
+
+        args = "-id testfiles/f1.txt"
+        with self.assertRaises(SystemExit):
+            DirectoryListProcessor(args.split(), "Test Processor", ".json", ".ttl")
+
+
 
 
 if __name__ == '__main__':

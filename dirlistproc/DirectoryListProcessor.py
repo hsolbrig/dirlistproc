@@ -80,10 +80,18 @@ class DirectoryListProcessor:
             self.parser.exit = lambda *args: _parser_exit(self.parser, self, *args)
         self.opts = self.parser.parse_args(self.decode_file_args(args if args is not None else sys.argv[1:]))
         if self.successful_parse:
+            if self.opts.indir and not os.path.isdir(self.opts.indir):
+                if os.path.exists(self.opts.indir):
+                    self.parser.error("{} is not a directory".format(self.opts.indir))
+                else:
+                    self.parser.error("Directory {} does not exist".format(self.opts.indir))
+                return
+
             n_infiles = len(self.opts.infile) if self.opts.infile else 0
             n_outfiles = len(self.opts.outfile) if self.opts.outfile else 0
             if (n_infiles > 1 or n_outfiles > 1) and n_infiles != n_outfiles and n_outfiles > 1:
                 self.parser.error("Number of input and output files must match")
+                return
             if postparse is not None:
                 postparse(self.opts)
 
